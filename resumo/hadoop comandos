@@ -1,0 +1,4 @@
+Pausar e reiniciar job history
+	mr-jobhistory-daemon.sh stop historyserver
+	mr-jobhistory-daemon.sh start historyserver
+Use ps ax | grep -e JobHistory to get the process and kill it manually with kill -9 [pid]. Then call the start command above again. Or

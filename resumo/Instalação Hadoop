@@ -1,0 +1,108 @@
+Instalação Hadoop
+Adicionar repositorio java
+  sudo add-apt-repository ppa:webupd8team/java
+  sudo apt-get update
+  sudo apt-get install oracle-java8-installer --y
+   instalação em /usr/lib/jvm
+
+1. Criar usuário dedicado
+	sudo addgroup hadoop
+	sudo adduser --ingroup hadoop hduser
+	sudo su root
+	sudo gedit /etc/sudoers
+		adicionar a linha 
+		hduser  ALL=(ALL:ALL) ALL com a permissão full para o usuário do hadoop
+
+ 2.Instala SSH server	
+	sudo apt-get install openssh-server
+	sudo su hduser
+	Cria uma chave ssh
+		ssh-keygen -t rsa -P ""
+	Adiciona a nova chave ssh a lista de chaves autorizadas para que o hadoop possa usar sem pedir senha
+		cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+	Hadoop não funciona com ipv6 então é necessário desabilitar atualizando /etc/sysctl.conf	sudo gedit /etc/sysctl.conf
+		Adicionar as linhas:
+			# disable ipv6
+			net.ipv6.conf.all.disable_ipv6 = 1
+			net.ipv6.conf.default.disable_ipv6 = 1
+			net.ipv6.conf.lo.disable_ipv6 = 1
+	Reiniciar a maquina 
+		sudo reboot
+	Baixar a instalação do hadoop e descompactar em /usr/local/hadoop
+		sudo chown hduser:hadoop -R /usr/local/hadoop
+	Criar diretorios temporários para namenode e datanode
+		sudo mkdir -p  /usr/local/hadoop_tmp/hdfs/namenode
+		sudo mkdir -p  /usr/local/hadoop_tmp/hdfs/datanode
+		sudo chown hduser:hadoop -R /usr/local/hadoop_tmp/
+	Alterar o .bashrc do hduser com:
+		# -- HADOOP ENVIRONMENT VARIABLES START -- # 
+		export JAVA_HOME=/usr/lib/jvm/java-8-oracle 
+		export HADOOP_HOME=/usr/local/hadoop 
+		export PATH=$PATH:$HADOOP_HOME/bin 
+		export PATH=$PATH:$HADOOP_HOME/sbin 
+		export HADOOP_MAPRED_HOME=$HADOOP_HOME 
+		export HADOOP_COMMON_HOME=$HADOOP_HOME 
+		export HADOOP_HDFS_HOME=$HADOOP_HOME 
+		export YARN_HOME=$HADOOP_HOME 
+		export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native 
+		export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib" 
+		export PATH=$PATH:/usr/local/hadoop/bin/ 
+		# -- HADOOP ENVIRONMENT VARIABLES END -- #	
+	Configurar o hadoop-env.sh: este arquivo contem algumas variáveis de ambiente usadas pelo hadoop como aonde os arquivos de logs são armazenados, o tamanho máximo do heap, etc.
+		cd /usr/local/hadoop/etc/hadoop/
+		sudo gedit hadoop-env.sh 
+		Alterar o java_home
+			export JAVA_HOME='/usr/lib/jvm/java-8-oracle'
+	Configurar o core-site.xml: arquivo que contém as configurações que sobrescrevem os valores de propriedades default do hadoop.
+		cd /usr/local/hadoop/etc/hadoop/
+		sudo gedit core-site.xml: name node rodando no localhost
+			<configuration>
+			    <property>
+			        <name>fs.defaultFS</name>
+			        <value>hdfs://localhost:9000</value>
+			    </property>
+			    <property>
+			        <name>dfs.replication</name>
+			        <value>1</value>
+			    </property>
+			</configuration>
+	Configurar o hdfs-sites.xml: Arquivo que habilita você sobrescrever o número default que controla o HDFS	
+		dfs.replication: fator de replicação para cada bloco do arquivo
+		dfs.namenode.name.dir: Metadados dos namenomes no sistema de arquivos.
+		dfs.datanode.name.dir: Metadados dos datanomes no sistema de arquivos.
+		<property>
+	        <name>dfs.replication</name>
+	        <value>1</value>
+	    </property>
+	    <property>
+	        <name>dfs.namenode.name.dir</name>
+	        <value>file:/usr/local/hadoop_tmp/hdfs/namenode</value>
+	    </property>
+	    <property>
+	        <name>dfs.datanode.name.dir</name>
+	        <value>file:/usr/local/ha
+	        doop_tmp/hdfs/datanode</value>
+	    </property>
+	Configurar o yarn-sites.xml: Arquivo que habilita sobescrever o número default de componentes yarn.	
+		yarn.nodemanager.aux-services: Nome do serviço auxiliar para ser adicionado ao node manager
+		yarn.nodemanager.aux-services.mapreduce.shuffle.class: Implementação do mapreduce_shuffle
+	   <property>
+	      <name>yarn.nodemanager.aux-services</name>
+	      <value>mapreduce_shuffle</value>
+	   </property>
+	   <property>
+	      <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+	      <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+	   </property>
+	Criar o arquivo mapred-site.xml   
+		cp /usr/local/hadoop/etc/hadoop/mapred-site.xml.template /usr/local/hadoop/etc/hadoop/mapred-site.xml
+		sudo gedit mapred-site.xml
+		mapreduce.framework.name: runtime framework par executar o mapreduce
+			 <property>
+			    <name>mapreduce.framework.name</name>
+			    <value>yarn</value>
+			 </property>
+	Preparar para executar o Hadoop cluster formatando o NameNode, necessário ser feito apenas 1x.
+		hdfs namenode -format
+	Iniciar mapreduce daemon
+		st.dfs.sh	
