@@ -1,0 +1,7 @@
+maria,20,blue,50
+joao,25,green,60
+jose,20,green,25
+ana,30,green,80
+tereza,24,blue,54
+luiz,40,black,43
+luana,20,green,45
